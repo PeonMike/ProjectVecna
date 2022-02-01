@@ -6,10 +6,13 @@
 #include "GameFramework/Character.h"
 #include "PVCharacter.generated.h"
 
+
+
 class UCameraComponent;
 class USpringArmComponent;
 class UPVInteractionComponent;
 class UAnimMontage;
+class UPVAttributeComponent;
 
 UCLASS()
 class PROJECTVECNA_API APVCharacter : public ACharacter
@@ -41,6 +44,9 @@ protected:
 
 	UPROPERTY(VisibleAnywhere)
 	UPVInteractionComponent* InteractionComp;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	UPVAttributeComponent* AttributeComp;
 
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
