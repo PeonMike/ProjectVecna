@@ -13,6 +13,7 @@ class USpringArmComponent;
 class UPVInteractionComponent;
 class UAnimMontage;
 class UPVAttributeComponent;
+class UParticleSystem;
 
 UCLASS()
 class PROJECTVECNA_API APVCharacter : public ACharacter
@@ -21,20 +22,37 @@ class PROJECTVECNA_API APVCharacter : public ACharacter
 
 protected:
 
+	/* VisibleAnywhere = read-only, still useful to view in-editor and enforce a convention. */
+	UPROPERTY(VisibleAnywhere, Category = "Effects")
+	FName TimeToHitParamName;
+
+	UPROPERTY(VisibleAnywhere, Category = "Effects")
+	FName HandSocketName;
+
+
 	UPROPERTY(EditAnywhere, Category = "Attack")
 	TSubclassOf<AActor> ProjectileClass;
 
 	UPROPERTY(EditAnywhere, Category = "Attack")
+	TSubclassOf<AActor> BlackHoleProjectileClass;
+
+	UPROPERTY(EditAnywhere, Category = "Attack")
+	TSubclassOf<AActor> DashProjectileClass;
+
+	UPROPERTY(EditAnywhere, Category = "Attack")
 	UAnimMontage* AttackAnim;
 
+	/* Particle System played during attack animation */
+	UPROPERTY(EditAnywhere, Category = "Attack")
+	UParticleSystem* CastingEffect;
+
+
 	FTimerHandle TimerHandle_PrimaryAttack;
+	FTimerHandle TimerHandle_BlackholeAttack;
+	FTimerHandle TimerHandle_Dash;
 
-
-public:
-	// Sets default values for this character's properties
-	APVCharacter();
-
-protected:
+	UPROPERTY(EditDefaultsOnly, Category = "Attack")
+	float AttackAnimDelay;
 
 	UPROPERTY(VisibleAnywhere)
 	USpringArmComponent* SpringArmComp;
@@ -48,15 +66,6 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	UPVAttributeComponent* AttributeComp;
 
-	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
-
-public:	
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
-
-	// Called to bind functionality to input
-	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 	void MoveForward(float Value);
 
@@ -66,6 +75,31 @@ public:
 
 	void PrimaryAttack_TimeLapsed();
 
+	void BlackHoleAttack();
+
+	void BlackholeAttack_TimeElapsed();
+
+	void Dash();
+
+	void Dash_TimeElapsed();
+
+	void StartAttackEffects();
+
+	// Re-use spawn logic between attacks
+	void SpawnProjectile(TSubclassOf<AActor> ClassToSpawn);
+
 	void PrimaryInteract();
+
+	UFUNCTION()
+	void OnHealthChanged(AActor* InstigatorActor, UPVAttributeComponent* OwningComp, float NewHealth, float Delta);
+
+	virtual void PostInitializeComponents() override;
+
+public:
+
+	APVCharacter();
+
+	// Called to bind functionality to input
+	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 };

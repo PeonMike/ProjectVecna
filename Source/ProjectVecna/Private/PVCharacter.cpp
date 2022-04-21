@@ -8,6 +8,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "PVInteractionComponent.h"
 #include "PVAttributeComponent.h"
+#include "Kismet/GameplayStatics.h"
 
 // Sets default values
 APVCharacter::APVCharacter()
@@ -28,22 +29,21 @@ APVCharacter::APVCharacter()
 	AttributeComp = CreateDefaultSubobject<UPVAttributeComponent>("AttributeComp");
 
 	GetCharacterMovement()->bOrientRotationToMovement = true;
-
 	bUseControllerRotationYaw = false;
+
+	AttackAnimDelay = 0.2f;
+	TimeToHitParamName = "TimeToHit";
+	HandSocketName = "Muzzle_01";
 }
 
-// Called when the game starts or when spawned
-void APVCharacter::BeginPlay()
+
+void APVCharacter::PostInitializeComponents()
 {
-	Super::BeginPlay();
-	
+	Super::PostInitializeComponents();
+
+	AttributeComp->OnHealthChanged.AddDynamic(this, &APVCharacter::OnHealthChanged);
 }
 
-// Called every frame
-void APVCharacter::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-}
 
 // Called to bind functionality to input
 void APVCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -57,6 +57,8 @@ void APVCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	PlayerInputComponent->BindAxis("LookUp", this, &APawn::AddControllerPitchInput);
 
 	PlayerInputComponent->BindAction("PrimaryAttack", IE_Pressed, this, &APVCharacter::PrimaryAttack);
+	PlayerInputComponent->BindAction("SecondaryAttack", IE_Pressed, this, &APVCharacter::BlackHoleAttack);
+	PlayerInputComponent->BindAction("Dash", IE_Pressed, this, &APVCharacter::Dash);
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &APVCharacter::Jump);
 	PlayerInputComponent->BindAction("PrimaryInteract", IE_Pressed, this, &APVCharacter::PrimaryInteract);
 }
@@ -85,25 +87,90 @@ void APVCharacter::MoveRight(float Value)
 
 void APVCharacter::PrimaryAttack()
 {
-	PlayAnimMontage(AttackAnim);
+	StartAttackEffects();
 
-	GetWorldTimerManager().SetTimer(TimerHandle_PrimaryAttack, this, &APVCharacter::PrimaryAttack_TimeLapsed, 0.2f);
+	GetWorldTimerManager().SetTimer(TimerHandle_PrimaryAttack, this, &APVCharacter::PrimaryAttack_TimeLapsed, AttackAnimDelay);
 }
 
 void APVCharacter::PrimaryAttack_TimeLapsed()
 {
-	FVector HandLocation = GetMesh()->GetSocketLocation("Muzzle_01");
-
-	FTransform SpawnTM = FTransform(GetControlRotation(), HandLocation);
-
-	FActorSpawnParameters SpawnParams;
-	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-
-	SpawnParams.Instigator = this;
-
-	GetWorld()->SpawnActor<AActor>(ProjectileClass, SpawnTM, SpawnParams);
+	SpawnProjectile(ProjectileClass);
 }
 
+
+void APVCharacter::BlackHoleAttack()
+{
+	StartAttackEffects();
+
+	GetWorldTimerManager().SetTimer(TimerHandle_PrimaryAttack, this, &APVCharacter::BlackholeAttack_TimeElapsed, AttackAnimDelay);
+}
+
+
+void APVCharacter::BlackholeAttack_TimeElapsed()
+{
+	SpawnProjectile(BlackHoleProjectileClass);
+}
+
+void APVCharacter::Dash()
+{
+	StartAttackEffects();
+
+	GetWorldTimerManager().SetTimer(TimerHandle_PrimaryAttack, this, &APVCharacter::Dash_TimeElapsed, AttackAnimDelay);
+}
+
+void APVCharacter::Dash_TimeElapsed()
+{
+	SpawnProjectile(DashProjectileClass);
+}
+
+void APVCharacter::StartAttackEffects()
+{
+	PlayAnimMontage(AttackAnim);
+
+	UGameplayStatics::SpawnEmitterAttached(CastingEffect, GetMesh(), HandSocketName, FVector::ZeroVector, FRotator::ZeroRotator, EAttachLocation::SnapToTarget);
+}
+
+
+
+
+void APVCharacter::SpawnProjectile(TSubclassOf<AActor> ClassToSpawn)
+{
+	if (ensureAlways(ClassToSpawn))
+	{
+		FVector HandLocation = GetMesh()->GetSocketLocation(HandSocketName);
+
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		SpawnParams.Instigator = this;
+
+		FCollisionShape Shape;
+		Shape.SetSphere(20.0f);
+
+		FCollisionQueryParams Params;
+		Params.AddIgnoredActor(this);
+
+		FCollisionObjectQueryParams ObjParams;
+		ObjParams.AddObjectTypesToQuery(ECC_WorldDynamic);
+		ObjParams.AddObjectTypesToQuery(ECC_WorldStatic);
+		ObjParams.AddObjectTypesToQuery(ECC_Pawn);
+
+		FVector TraceStart = CameraComp->GetComponentLocation();
+
+		FVector TraceEnd = CameraComp->GetComponentLocation() + (GetControlRotation().Vector() * 5000);
+
+		FHitResult Hit;
+
+		if (GetWorld()->SweepSingleByObjectType(Hit, TraceStart, TraceEnd, FQuat::Identity, ObjParams, Shape, Params))
+		{
+			TraceEnd = Hit.ImpactPoint;
+		}
+
+		FRotator ProjRotation = FRotationMatrix::MakeFromX(TraceEnd - HandLocation).Rotator();
+
+		FTransform SpawnTM = FTransform(ProjRotation, HandLocation);
+		GetWorld()->SpawnActor<AActor>(ClassToSpawn, SpawnTM, SpawnParams);
+	}
+}
 
 
 void APVCharacter::PrimaryInteract()
@@ -113,3 +180,18 @@ void APVCharacter::PrimaryInteract()
 		InteractionComp->PrimaryInteract();
 	}
 }
+
+void APVCharacter::OnHealthChanged(AActor * InstigatorActor, UPVAttributeComponent * OwningComp, float NewHealth, float Delta)
+{
+	if (Delta < 0.0f)
+	{
+		GetMesh()->SetScalarParameterValueOnMaterials(TimeToHitParamName, GetWorld()->TimeSeconds);
+	}
+
+	if (NewHealth <= 0.0f && Delta < 0.0f)
+	{
+		APlayerController* PC = Cast<APlayerController>(GetController());
+		DisableInput(PC);
+	}
+}
+

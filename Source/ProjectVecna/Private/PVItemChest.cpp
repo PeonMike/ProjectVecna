@@ -21,6 +21,7 @@ APVItemChest::APVItemChest()
 	LidMesh = CreateAbstractDefaultSubobject<UStaticMeshComponent>(TEXT("LidMesh"));
 	LidMesh->SetupAttachment(BaseMesh);
 
+
 	TargetPitch = 120;
 
 }
