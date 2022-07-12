@@ -18,7 +18,13 @@ class PROJECTVECNA_API UPVBTTask_RangedAttack : public UBTTaskNode
 	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
 
 protected:
+	UPROPERTY(EditAnywhere, Category = "AI")
+	float MaxBulletSpread;
 
 	UPROPERTY(EditAnywhere, Category = "AI")
 	TSubclassOf<AActor> ProjectileClass;
+
+public:
+
+	UPVBTTask_RangedAttack();
 };

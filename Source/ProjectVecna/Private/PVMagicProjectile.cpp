@@ -4,6 +4,7 @@
 #include "PVMagicProjectile.h"
 #include "PVAttributeComponent.h"
 #include "Components/SphereComponent.h"
+#include "PVGameplayFunctionLibrary.h"
 
 
 // Sets default values
@@ -20,13 +21,19 @@ void APVMagicProjectile::OnActorOverlap(UPrimitiveComponent * OverlappedComponen
 {
 	if (OtherActor && OtherActor != GetInstigator()) 
 	{
-		UPVAttributeComponent* AttributeComp = Cast<UPVAttributeComponent>(OtherActor->GetComponentByClass(UPVAttributeComponent::StaticClass()));
+		/*UPVAttributeComponent* AttributeComp = Cast<UPVAttributeComponent>(OtherActor->GetComponentByClass(UPVAttributeComponent::StaticClass()));
 		if (AttributeComp)
 		{
 			// minus in front of DamageAmount to apply the change as damage, not healing
-			AttributeComp->ApplyHealthChange(-DamageAmount);
+			AttributeComp->ApplyHealthChange(GetInstigator(), -DamageAmount);
 
 			// Only explode when we hit something valid
+			Explode();
+		}
+		*/
+
+		if (UPVGameplayFunctionLibrary::ApplyDirectionalDamage(GetInstigator(), OtherActor, DamageAmount, SweepResult))
+		{
 			Explode();
 		}
 	}

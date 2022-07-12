@@ -5,6 +5,9 @@
 #include "PVGameplayInterface.h"
 #include "DrawDebugHelpers.h"
 
+
+static TAutoConsoleVariable<bool> CVarDebagDrawInteraction(TEXT("pv.DebagDrawInteraction"), 1.0f, TEXT("Switch debug draw"), ECVF_Cheat);
+
 // Sets default values for this component's properties
 UPVInteractionComponent::UPVInteractionComponent()
 {
@@ -37,6 +40,10 @@ void UPVInteractionComponent::TickComponent(float DeltaTime, ELevelTick TickType
 
 void UPVInteractionComponent::PrimaryInteract() 
 {
+
+	bool bDebagDrawInteraction = CVarDebagDrawInteraction.GetValueOnGameThread();
+
+
 	FCollisionObjectQueryParams ObjectQuaeryParams;
 	ObjectQuaeryParams.AddObjectTypesToQuery(ECC_WorldDynamic);
 
@@ -65,6 +72,13 @@ void UPVInteractionComponent::PrimaryInteract()
 
 	for (FHitResult Hit : Hits)
 	{
+
+		if (bDebagDrawInteraction)
+		{
+			DrawDebugSphere(GetWorld(), Hit.ImpactPoint, Radius, 32, LineColor, false, 2.0f);
+		}
+
+
 		AActor* HitActor = Hit.GetActor();
 		if (HitActor)
 		{
@@ -75,10 +89,12 @@ void UPVInteractionComponent::PrimaryInteract()
 				break;
 			}
 		}	
-		DrawDebugSphere(GetWorld(), Hit.ImpactPoint, Radius, 32, LineColor, false, 2.0f);
+
 	}
 
-	DrawDebugLine(GetWorld(), EyeLocation, End, LineColor, false, 2.0f, 0, 2.0f);
-
+	if (bDebagDrawInteraction)
+	{
+		DrawDebugLine(GetWorld(), EyeLocation, End, LineColor, false, 2.0f, 0, 2.0f);
+	}
 
 }
