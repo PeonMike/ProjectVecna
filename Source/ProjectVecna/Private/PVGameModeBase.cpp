@@ -9,24 +9,44 @@
 #include "EngineUtils.h"
 #include "DrawDebugHelpers.h"
 #include "PVCharacter.h"
+#include "PVSaveGame.h"
+#include "Kismet/GameplayStatics.h"
+#include "GameFramework/GameStateBase.h"
+#include "PVGameplayInterface.h"
+#include "Serialization/ObjectAndNameAsStringProxyArchive.h"
 
 
-
-
-static TAutoConsoleVariable<bool> CVarSpawnBot(TEXT("pv.SpawnBots"), true, TEXT("Enable spawning og bots via timer"), ECVF_Cheat);
 
 
 APVGameModeBase::APVGameModeBase()
 {
-
 	SpawnTimerInterval = 2.0f;
+	SlotName = "SaveGame01";
 }
+
+static TAutoConsoleVariable<bool> CVarSpawnBot(TEXT("pv.SpawnBots"), true, TEXT("Enable spawning og bots via timer"), ECVF_Cheat);
+
+
+
+void APVGameModeBase::InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage)
+{
+	Super::InitGame(MapName, Options, ErrorMessage);
+
+	LoadSaveGame();
+}
+
+
 
 void APVGameModeBase::StartPlay()
 {
 	Super::StartPlay();
 
 	GetWorldTimerManager().SetTimer(TimerHandle_SpawnBots, this, &APVGameModeBase::SpawnBotTimerElapsed, SpawnTimerInterval, true);
+}
+
+void APVGameModeBase::HandleStartingNewPlayer_Implementation(APlayerController * NewPlayer)
+{
+	Super::HandleStartingNewPlayer_Implementation(NewPlayer);
 }
 
 void APVGameModeBase::KillAllAI()
@@ -85,7 +105,7 @@ void APVGameModeBase::SpawnBotTimerElapsed()
 	}
 }
 
-void APVGameModeBase::OnQueryCompleted(UEnvQueryInstanceBlueprintWrapper * QueryInstance, EEnvQueryStatus::Type QueryStatus)
+void APVGameModeBase::OnQueryCompleted(UEnvQueryInstanceBlueprintWrapper* QueryInstance, EEnvQueryStatus::Type QueryStatus)
 {
 	if (QueryStatus != EEnvQueryStatus::Success)
 	{
@@ -106,7 +126,7 @@ void APVGameModeBase::OnQueryCompleted(UEnvQueryInstanceBlueprintWrapper * Query
 	}
 }
 
-void APVGameModeBase::RespawnPlayerElapsed(AController * Controller)
+void APVGameModeBase::RespawnPlayerElapsed(AController* Controller)
 {
 	if (ensure(Controller))
 	{
@@ -116,7 +136,7 @@ void APVGameModeBase::RespawnPlayerElapsed(AController * Controller)
 }
 
 
-void APVGameModeBase::OnActorKilled(AActor * VictimActor, AActor * Killer)
+void APVGameModeBase::OnActorKilled(AActor* VictimActor, AActor* Killer)
 {
 	APVCharacter* Player = Cast<APVCharacter>(VictimActor);
 	if (Player)
@@ -128,5 +148,91 @@ void APVGameModeBase::OnActorKilled(AActor * VictimActor, AActor * Killer)
 
 		float RespawnDelay = 2.0f;
 		GetWorldTimerManager().SetTimer(TimerHandle_RespawnDelay, Delegate, RespawnDelay, false);
+	}
+}
+
+
+void APVGameModeBase::WriteSaveGame()
+{
+
+	CurrentSaveGame->SavedActors.Empty();
+
+	for (FActorIterator It(GetWorld()); It; ++It)
+	{
+		AActor* Actor = *It;
+
+		if (!Actor->Implements<UPVGameplayInterface>())
+		{
+			continue;
+		}
+		
+		FActorSaveData ActorData;
+		ActorData.ActorName = Actor->GetName();
+		ActorData.Transform = Actor->GetActorTransform();
+
+		// Pass the array to fill with data from Actor
+		FMemoryWriter MemWriter(ActorData.ByteData);
+
+		FObjectAndNameAsStringProxyArchive Ar(MemWriter, true);
+		// Find only variables with UPROPERTY(SaveGame)
+		Ar.ArIsSaveGame = true;
+		// Converts Actor's SaveGame UPROPERTIES into binary array
+		Actor->Serialize(Ar);
+
+		CurrentSaveGame->SavedActors.Add(ActorData);
+	}
+
+
+
+	UGameplayStatics::SaveGameToSlot(CurrentSaveGame, SlotName, 0);
+}
+
+void APVGameModeBase::LoadSaveGame()
+{
+	if (UGameplayStatics::DoesSaveGameExist(SlotName, 0))
+	{
+		CurrentSaveGame = Cast<UPVSaveGame>(UGameplayStatics::LoadGameFromSlot(SlotName, 0));
+		if (CurrentSaveGame == nullptr)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Failed to load SaveGame data"));
+			return;
+		}
+		UE_LOG(LogTemp, Warning, TEXT("Loaded new SaveGame data"));
+
+
+		for (FActorIterator It(GetWorld()); It; ++It)
+		{
+			AActor* Actor = *It;
+			// Only interested in our 'gameplay actors'
+			if (!Actor->Implements<UPVGameplayInterface>())
+			{
+				continue;
+			}
+
+			for (FActorSaveData ActorData : CurrentSaveGame->SavedActors)
+			{
+				if (ActorData.ActorName == Actor->GetName())
+				{
+					Actor->SetActorTransform(ActorData.Transform);
+
+					FMemoryReader MemReader(ActorData.ByteData);
+
+					FObjectAndNameAsStringProxyArchive Ar(MemReader, true);
+					Ar.ArIsSaveGame = true;
+					// Convert binary array back into actor's variables
+					Actor->Serialize(Ar);
+
+					IPVGameplayInterface::Execute_OnActorLoaded(Actor);
+
+					break;
+				}
+			}
+		}
+	}
+	else
+	{
+		CurrentSaveGame = Cast<UPVSaveGame>(UGameplayStatics::CreateSaveGameObject(UPVSaveGame::StaticClass()));
+
+		UE_LOG(LogTemp, Warning, TEXT("Created new SaveGame data"));
 	}
 }

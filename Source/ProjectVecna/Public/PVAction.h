@@ -7,11 +7,24 @@
 #include "GameplayTagContainer.h"
 #include "PVAction.generated.h"
 
-
-
-
 class UWorld;
 
+
+
+USTRUCT()
+struct FActionRepData
+{
+	GENERATED_BODY()
+
+public:
+
+	UPROPERTY()
+	bool bIsRunning;
+
+	UPROPERTY()
+	AActor* Instigator;
+
+};
 
 
 UCLASS(Blueprintable)
@@ -20,6 +33,12 @@ class PROJECTVECNA_API UPVAction : public UObject
 	GENERATED_BODY()
 
 protected:
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI")
+	UTexture2D*  Icon;
+
+	UPROPERTY(Replicated)
+	UPVActionComponent* ActionComp;
 
 	UFUNCTION(BlueprintCallable, Category = "Action")
 	UPVActionComponent* GetOwningComponent() const;
@@ -30,10 +49,21 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Tags")
 	FGameplayTagContainer BlockedTags;
 
-	bool bIsRunnig;
+	UPROPERTY(ReplicatedUsing="OnRep_RepData")
+	FActionRepData RepData;
 
+	UPROPERTY(Replicated)
+	float TimeStarted;
+
+	UFUNCTION()
+	void OnRep_RepData();
 
 public:
+
+	void Initialize(UPVActionComponent* NewActionComp);
+
+	UPROPERTY(EditDefaultsOnly, Category = "Action")
+	bool bAutoStart;
 
 	UFUNCTION(BlueprintCallable, Category = "Action")
 	bool IsRunning() const;
@@ -44,7 +74,7 @@ public:
 	UFUNCTION(BlueprintNativeEvent, Category = "Action")
 	void StartAction(AActor* Instigator);
 
-	UFUNCTION(BlueprintNativeEvent, Category = "Action")
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Action")
 	void StopAction(AActor* Instigator);
 
 	UPROPERTY(EditDefaultsOnly, Category = "Action")
@@ -52,5 +82,10 @@ public:
 
 
 	UWorld* GetWorld() const override;
+
+	bool IsSupportedForNetworking() const override
+	{
+		return true;
+	}
 	
 };

@@ -3,6 +3,8 @@
 
 #include "PVAttributeComponent.h"
 #include "PVGameModeBase.h"
+#include "Net/UnrealNetwork.h"
+#include "PVSaveGame.h"
 
 
 static TAutoConsoleVariable<float> CVarDamageMultiplier(TEXT("pv.DamageMultiplier"), 1.0f, TEXT("Multiply Damage"), ECVF_Cheat);
@@ -14,11 +16,14 @@ UPVAttributeComponent::UPVAttributeComponent()
 {
 	HealthMax = 100;
 	Health = HealthMax;
+
+	SetIsReplicatedByDefault(true);
 }
 
 
 
-bool UPVAttributeComponent::Kill(AActor * InstigatorActor)
+
+bool UPVAttributeComponent::Kill(AActor* InstigatorActor)
 {
 	return ApplyHealthChange(InstigatorActor, -GetHealthMax());
 }
@@ -43,7 +48,10 @@ float UPVAttributeComponent::GetHealthMax() const
 
 bool UPVAttributeComponent::ApplyHealthChange(AActor* InstigatorActor, float Delta)
 {
-	float OldHealth = Health;
+	if (!GetOwner()->CanBeDamaged() && Delta < 0.0f)
+	{
+		return false;
+	}
 
 
 	if (Delta < 0.0f)
@@ -53,18 +61,29 @@ bool UPVAttributeComponent::ApplyHealthChange(AActor* InstigatorActor, float Del
 		Delta *= DamageMultiplier;
 	}
 
-	Health = FMath::Clamp(Health + Delta, 0.0f, HealthMax);
+	float OldHealth = Health;
+	float NewHealth = FMath::Clamp(Health + Delta, 0.0f, HealthMax);
+	float ActualDelta = NewHealth - OldHealth;
 
-	float ActualDelta = Health - OldHealth;
-	OnHealthChanged.Broadcast(InstigatorActor, this, Health, ActualDelta); // @fixme: Still nullptr for InstigatorActor parameter
-
-	if (ActualDelta < 0.0f && Health == 0.0f)
+	//Is Server?
+	if (GetOwner()->HasAuthority())
 	{
-		APVGameModeBase* GM = GetWorld()->GetAuthGameMode<APVGameModeBase>();
+		Health = NewHealth;
 
-		if (GM)
+		if (ActualDelta != 0.0f)
 		{
-			GM->OnActorKilled(GetOwner(), InstigatorActor);
+			MultiCastHealthChanged(InstigatorActor, Health, ActualDelta);
+		}
+
+		// isDead?
+		if (ActualDelta < 0.0f && Health == 0.0f)
+		{
+			APVGameModeBase* GM = GetWorld()->GetAuthGameMode<APVGameModeBase>();
+
+			if (GM)
+			{
+				GM->OnActorKilled(GetOwner(), InstigatorActor);
+			}
 		}
 	}
 
@@ -84,7 +103,7 @@ UPVAttributeComponent* UPVAttributeComponent::GetAttributes(AActor* FromActor)
 
 
 
-bool UPVAttributeComponent::IsActorAlive(AActor * Actor)
+bool UPVAttributeComponent::IsActorAlive(AActor* Actor)
 {
 	UPVAttributeComponent* AttributeComp = GetAttributes(Actor);
 	if (AttributeComp)
@@ -94,3 +113,20 @@ bool UPVAttributeComponent::IsActorAlive(AActor * Actor)
 
 	return false;
 }
+
+
+void UPVAttributeComponent::MultiCastHealthChanged_Implementation(AActor* InstigatorActor, float NewHealth, float Delta)
+{
+	OnHealthChanged.Broadcast(InstigatorActor, this, NewHealth, Delta);
+}
+
+
+void UPVAttributeComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(UPVAttributeComponent, Health);
+	DOREPLIFETIME(UPVAttributeComponent, HealthMax);
+
+}
+

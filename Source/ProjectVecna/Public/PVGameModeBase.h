@@ -11,6 +11,7 @@
 class UEnvQuery;
 class UEnvQueryInstanceBlueprintWrapper;
 class UCurveFloat;
+class UPVSaveGame;
 /**
  * 
  */
@@ -20,6 +21,11 @@ class PROJECTVECNA_API APVGameModeBase : public AGameModeBase
 	GENERATED_BODY()
 
 protected:
+
+	FString SlotName;
+
+	UPROPERTY(EditDefaultsOnly, Category = "AI")
+	UPVSaveGame* CurrentSaveGame;
 
 	UPROPERTY(EditDefaultsOnly, Category = "AI")
 	TSubclassOf<AActor> MinionClass;
@@ -46,12 +52,21 @@ protected:
 	
 public:
 
+	void InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage) override;
+
 	virtual void OnActorKilled(AActor* VictimActor, AActor* Killer);
 
 	APVGameModeBase();
 
 	virtual void StartPlay() override;
 
+	void HandleStartingNewPlayer_Implementation(APlayerController* NewPlayer) override;
+
 	UFUNCTION(Exec)
-		void KillAllAI();
+	void KillAllAI();
+
+	UFUNCTION(BlueprintCallable, Category = "SaveGame")
+	void WriteSaveGame();
+
+	void LoadSaveGame();
 };

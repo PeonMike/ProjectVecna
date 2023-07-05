@@ -19,11 +19,16 @@ public:
 
 	void Interact_Implementation(APawn* InstigatorPawn);
 
-public:	
-	// Sets default values for this actor's properties
-	APVItemChest();
+	void OnActorLoaded_Implementation();
 
 protected:
+
+
+	UPROPERTY(ReplicatedUsing = "OnRep_LidOpened", BlueprintReadOnly, SaveGame)
+	bool bLidOpened;
+
+	UFUNCTION()
+	void OnRep_LidOpened();
 
 	UPROPERTY(VisibleAnywhere)
 	UStaticMeshComponent* BaseMesh;
@@ -34,8 +39,8 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-public:	
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
+public:
+	// Sets default values for this actor's properties
+	APVItemChest();
 
 };

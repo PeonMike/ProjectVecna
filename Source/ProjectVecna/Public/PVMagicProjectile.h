@@ -4,11 +4,13 @@
 
 #include "CoreMinimal.h"
 #include "PVProjectileBase.h"
+#include "GameplayTagContainer.h"
 #include "PVMagicProjectile.generated.h"
 
 class USphereComponent;
 class UProjectileMovementComponent;
 class UParticleSystemComponent;
+class UPVActionEffect;
 
 UCLASS()
 class PROJECTVECNA_API APVMagicProjectile : public APVProjectileBase
@@ -21,6 +23,12 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Damage")
 	float DamageAmount;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Damage")
+	FGameplayTag ParryTag;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Damage")
+	TSubclassOf<UPVActionEffect> BurningActionClass;
+
 	UFUNCTION()
 	void OnActorOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
@@ -30,4 +38,5 @@ protected:
 public:	
 	
 	APVMagicProjectile();
+	void APVIsBackstab(AActor* Target);
 };

@@ -7,7 +7,10 @@
 #include "PVInteractionComponent.generated.h"
 
 
-UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
+
+class UPVWorldUserWidget;
+
+UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class PROJECTVECNA_API UPVInteractionComponent : public UActorComponent
 {
 	GENERATED_BODY()
@@ -16,18 +19,37 @@ public:
 
 	void PrimaryInteract();
 
-public:	
-
-	// Sets default values for this component's properties
-	UPVInteractionComponent();
-
 protected:
-	// Called when the game starts
+
+	UFUNCTION(Server, Reliable)
+	void ServerInteract(AActor* InFocus);
+	
+	void FindBestInteractable();
+
 	virtual void BeginPlay() override;
+
+	UPROPERTY()
+	AActor* FocusedActor;
+
+
+	UPROPERTY(EditDefaultsOnly, Category = "Trace")
+	float TraceDistance;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Trace")
+	float TraceRadius;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Trace")
+	TEnumAsByte<ECollisionChannel> CollisionChannel;
+
+	UPROPERTY(EditDefaultsOnly, Category = "UI")
+	TSubclassOf<UPVWorldUserWidget> DefaultWidgetClass;
+
+	UPROPERTY()
+	UPVWorldUserWidget* DefaultWidgetInstance;
 
 public:	
 	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
-		
+	UPVInteractionComponent();
 };

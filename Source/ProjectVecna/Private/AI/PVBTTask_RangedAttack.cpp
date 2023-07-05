@@ -16,7 +16,7 @@ UPVBTTask_RangedAttack::UPVBTTask_RangedAttack()
 	MaxBulletSpread = 2.0f;
 }
 
-EBTNodeResult::Type UPVBTTask_RangedAttack::ExecuteTask(UBehaviorTreeComponent & OwnerComp, uint8 * NodeMemory)
+EBTNodeResult::Type UPVBTTask_RangedAttack::ExecuteTask(UBehaviorTreeComponent & OwnerComp, uint8* NodeMemory)
 {
 
 	AAIController* MyController = OwnerComp.GetAIOwner();

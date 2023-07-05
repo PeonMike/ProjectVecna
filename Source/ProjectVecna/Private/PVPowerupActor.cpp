@@ -12,6 +12,7 @@ APVPowerupActor::APVPowerupActor()
 	RootComponent = SphereComp;
 
 	RespawnTime = 10.0f;
+	SetReplicates(true);
 }
 
 
@@ -36,7 +37,7 @@ void APVPowerupActor::SetPowerupState(bool bNewIsActive)
 	RootComponent->SetVisibility(bNewIsActive, true);
 }
 
-void APVPowerupActor::Interact_Implementation(APawn * InstigatorPawn)
+void APVPowerupActor::Interact_Implementation(APawn* InstigatorPawn)
 {
 }
 

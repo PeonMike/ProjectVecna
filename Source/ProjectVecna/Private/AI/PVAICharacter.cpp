@@ -11,6 +11,7 @@
 #include "PVWorldUserWidget.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "PVActionComponent.h"
 
 // Sets default values
 APVAICharacter::APVAICharacter()
@@ -18,6 +19,7 @@ APVAICharacter::APVAICharacter()
 	PawnSensingComp = CreateDefaultSubobject<UPawnSensingComponent>("PawnSensingComp");
 
 	AttributeComp = CreateDefaultSubobject<UPVAttributeComponent>("AttributeComp");
+	ActionComp = CreateDefaultSubobject<UPVActionComponent>("ActionComp");
 
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
 
@@ -40,7 +42,7 @@ void APVAICharacter::PostInitializeComponents()
 }
 
 
-void APVAICharacter::OnHealthChanged(AActor * InstigatorActor, UPVAttributeComponent * OwningComp, float NewHealth, float Delta)
+void APVAICharacter::OnHealthChanged(AActor* InstigatorActor, UPVAttributeComponent* OwningComp, float NewHealth, float Delta)
 {
 	if (Delta < 0.0f)
 	{
@@ -85,7 +87,7 @@ void APVAICharacter::OnHealthChanged(AActor * InstigatorActor, UPVAttributeCompo
 
 }
 
-void APVAICharacter::SetTargetActor(AActor * NewTarget)
+void APVAICharacter::SetTargetActor(AActor* NewTarget)
 {
 	AAIController* AIC = Cast<AAIController>(GetController());
 	if (AIC)

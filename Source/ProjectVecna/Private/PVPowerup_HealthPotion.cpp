@@ -4,7 +4,7 @@
 #include "PVPowerup_HealthPotion.h"
 #include "PVAttributeComponent.h"
 
-void APVPowerup_HealthPotion::Interact_Implementation(APawn * InstigatorPawn)
+void APVPowerup_HealthPotion::Interact_Implementation(APawn* InstigatorPawn)
 {
 	if (!ensure(InstigatorPawn))
 	{

@@ -3,54 +3,102 @@
 
 #include "PVActionComponent.h"
 #include "PVAction.h"
+#include "../ProjectVecna.h"
+#include "Net/UnrealNetwork.h"
+#include "Engine/ActorChannel.h"
 
 
 UPVActionComponent::UPVActionComponent()
 {
 
 	PrimaryComponentTick.bCanEverTick = true;
+
+	SetIsReplicatedByDefault(true);
 }
+
+
 
 
 void UPVActionComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	for (TSubclassOf<UPVAction> ActionClass : DefaultAction)
+	if (GetOwner()->HasAuthority())
 	{
-		AddAction(ActionClass);
+		for (TSubclassOf<UPVAction> ActionClass : DefaultAction)
+		{
+			AddAction(GetOwner(), ActionClass);
+		}
 	}
+
 
 	
 }
+
 
 void UPVActionComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	FString DebugMsg = GetNameSafe(GetOwner()) + " : " + ActiveGameplayTags.ToStringSimple();
-	GEngine->AddOnScreenDebugMessage(-1, 0.0f, FColor::White, DebugMsg);
+	//FString DebugMsg = GetNameSafe(GetOwner()) + " : " + ActiveGameplayTags.ToStringSimple();
+	//GEngine->AddOnScreenDebugMessage(-1, 0.0f, FColor::White, DebugMsg);
+
+	for (UPVAction* Action : Actions) 
+	{
+		FColor TextColor = Action->IsRunning() ? FColor::Blue : FColor::White;
+
+		FString ActionMsg = FString::Printf(TEXT("[%s] Action: %s : IsRunning: %s : Outer: %s"), 
+			*GetNameSafe(GetOwner()), 
+			*Action->ActionName.ToString(),
+			Action->IsRunning() ? TEXT("True") : TEXT("False"),
+			*GetNameSafe(Action->GetOuter()));
+		 
+		LogOnScreen(this, ActionMsg, TextColor, 0.0f);	
+	}
 }
 
 
-void UPVActionComponent::AddAction(TSubclassOf<UPVAction> ActionClass)
+void UPVActionComponent::AddAction(AActor* Instigator, TSubclassOf<UPVAction> ActionClass)
 {
 	if (!ensure(ActionClass))
 	{
 		return;
 	}
 
-	UPVAction* NewAction = NewObject<UPVAction>(this, ActionClass);
+	if (!GetOwner()->HasAuthority())
+	{
+		return;
+	}
+
+	UPVAction* NewAction = NewObject<UPVAction>(GetOwner(), ActionClass);
 
 	if (ensure(NewAction))
 	{
+		NewAction->Initialize(this);
+
 		Actions.Add(NewAction);
+
+		if (NewAction->bAutoStart && ensure(NewAction->CanStart(Instigator)))
+		{
+			NewAction->StartAction(Instigator);
+		}
 	}
 
 }
 
 
-bool UPVActionComponent::StartActionByName(AActor * Instigator, FName ActionName)
+void UPVActionComponent::RemoveAction(UPVAction* ActionToRemove)
+{
+	if (!ensure(ActionToRemove && !ActionToRemove->IsRunning()))
+	{
+		return;
+	}
+
+	Actions.Remove(ActionToRemove);
+}
+
+
+bool UPVActionComponent::StartActionByName(AActor* Instigator, FName ActionName)
 {
 	for (UPVAction* Action : Actions)
 	{
@@ -58,8 +106,13 @@ bool UPVActionComponent::StartActionByName(AActor * Instigator, FName ActionName
 		{
 			if (!Action->CanStart(Instigator))
 			{
-
+				FString FailedMsg = FString::Printf(TEXT("Failed to run: %s"), *ActionName.ToString());
+				GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Red, FailedMsg);
 				continue;
+			}
+
+			if (!GetOwner()->HasAuthority()) {
+				ServerStartAction(Instigator, ActionName);
 			}
 
 			Action->StartAction(Instigator);
@@ -69,7 +122,8 @@ bool UPVActionComponent::StartActionByName(AActor * Instigator, FName ActionName
 	return false;
 }
 
-bool UPVActionComponent::StopActionByName(AActor * Instigator, FName ActionName)
+
+bool UPVActionComponent::StopActionByName(AActor* Instigator, FName ActionName)
 {
 	for (UPVAction* Action : Actions)
 	{
@@ -77,6 +131,10 @@ bool UPVActionComponent::StopActionByName(AActor * Instigator, FName ActionName)
 		{
 			if (Action->IsRunning())
 			{
+				if (!GetOwner()->HasAuthority()) {
+					ServerStopAction(Instigator, ActionName);
+				}
+
 				Action->StopAction(Instigator);
 				return true;
 			}
@@ -84,4 +142,38 @@ bool UPVActionComponent::StopActionByName(AActor * Instigator, FName ActionName)
 		}
 	}
 	return false;
+}
+
+
+void UPVActionComponent::ServerStartAction_Implementation(AActor* Instigator, FName ActionName)
+{
+	StartActionByName(Instigator, ActionName);
+}
+
+void UPVActionComponent::ServerStopAction_Implementation(AActor* Instigator, FName ActionName)
+{
+	StopActionByName(Instigator, ActionName);
+}
+
+
+bool UPVActionComponent::ReplicateSubobjects(UActorChannel * Channel, FOutBunch * Bunch, FReplicationFlags * RepFlags)
+{
+	bool WroteSomething = Super::ReplicateSubobjects(Channel, Bunch, RepFlags);
+	for (UPVAction* Action : Actions)
+	{
+		if (Action)
+		{
+			WroteSomething |= Channel->ReplicateSubobject(Action, *Bunch, *RepFlags);
+		}
+	}
+
+	return WroteSomething;
+}
+
+
+void UPVActionComponent::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(UPVActionComponent, Actions);
 }

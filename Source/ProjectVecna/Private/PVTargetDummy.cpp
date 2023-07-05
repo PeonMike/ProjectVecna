@@ -18,7 +18,7 @@ APVTargetDummy::APVTargetDummy()
 
 }
 
-void APVTargetDummy::OnHealthChanged(AActor * InstigatorActor, UPVAttributeComponent * OwningComp, float NewHealth, float Delta)
+void APVTargetDummy::OnHealthChanged(AActor* InstigatorActor, UPVAttributeComponent* OwningComp, float NewHealth, float Delta)
 {
 	if (Delta < 0.0f)
 	{

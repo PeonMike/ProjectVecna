@@ -18,7 +18,7 @@ bool UPVGameplayFunctionLibrary::ApplyDamage(AActor* DamageCauser, AActor* Targe
 	return false;
 }
 
-bool UPVGameplayFunctionLibrary::ApplyDirectionalDamage(AActor * DamageCauser, AActor * TargetActor, float DamageAmount, const FHitResult & HitResult)
+bool UPVGameplayFunctionLibrary::ApplyDirectionalDamage(AActor* DamageCauser, AActor* TargetActor, float DamageAmount, const FHitResult & HitResult)
 {
 	if (ApplyDamage(DamageCauser, TargetActor, DamageAmount))
 	{

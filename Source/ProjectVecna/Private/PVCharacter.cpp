@@ -136,7 +136,7 @@ void APVCharacter::PrimaryInteract()
 	}
 }
 
-void APVCharacter::OnHealthChanged(AActor * InstigatorActor, UPVAttributeComponent * OwningComp, float NewHealth, float Delta)
+void APVCharacter::OnHealthChanged(AActor* InstigatorActor, UPVAttributeComponent* OwningComp, float NewHealth, float Delta)
 {
 	if (Delta < 0.0f)
 	{
@@ -147,6 +147,8 @@ void APVCharacter::OnHealthChanged(AActor * InstigatorActor, UPVAttributeCompone
 	{
 		APlayerController* PC = Cast<APlayerController>(GetController());
 		DisableInput(PC);
+
+		SetLifeSpan(5.0f);
 	}
 }
 

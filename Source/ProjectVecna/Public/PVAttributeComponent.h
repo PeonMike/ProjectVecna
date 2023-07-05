@@ -7,6 +7,8 @@
 #include "PVAttributeComponent.generated.h"
 
 
+class UPVSaveGame;
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_FourParams(FOnHealthChanged, AActor*, InstigatorActor, UPVAttributeComponent*, OwningComp, float, NewHealth, float, Delta);
 
 
@@ -29,12 +31,15 @@ public:
 
 protected:
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Attributes")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Replicated, Category = "Attributes")
 	float Health;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Attributes")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Replicated, Category = "Attributes")
 	float HealthMax;
 
+
+	UFUNCTION(NetMulticast, Reliable)
+	void MultiCastHealthChanged(AActor* InstigatorActor, float NewHealth, float Delta);
 
 public:
 

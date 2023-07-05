@@ -3,32 +3,8 @@
 
 #include "PVAction.h"
 #include "PVActionComponent.h"
-
-
-
-
-void UPVAction::StartAction_Implementation(AActor* Instigator)
-{
-	UE_LOG(LogTemp, Log, TEXT("Start: %s"), *GetNameSafe(this));
-
-	UPVActionComponent* Comp = GetOwningComponent();
-	Comp->ActiveGameplayTags.AppendTags(GrantsTags);
-
-	bIsRunnig = true;
-}
-
-
-void UPVAction::StopAction_Implementation(AActor* Instigator)
-{
-	UE_LOG(LogTemp, Log, TEXT("Stop: %s"), *GetNameSafe(this));
-
-	ensureAlways(bIsRunnig);
-
-	UPVActionComponent* Comp = GetOwningComponent();
-	Comp->ActiveGameplayTags.RemoveTags(GrantsTags);
-
-	bIsRunnig = false;
-}
+#include "../ProjectVecna.h"
+#include "Net/UnrealNetwork.h"
 
 
 
@@ -49,25 +25,94 @@ bool UPVAction::CanStart_Implementation(AActor* Instigator)
 	return true;
 }
 
-bool UPVAction::IsRunning() const
+
+void UPVAction::Initialize(UPVActionComponent * NewActionComp)
 {
-	return bIsRunnig;
+	ActionComp = NewActionComp;
 }
+
+
+void UPVAction::StartAction_Implementation(AActor* Instigator)
+{
+	//UE_LOG(LogTemp, Log, TEXT("Start: %s"), *GetNameSafe(this));
+	LogOnScreen(this, FString::Printf(TEXT("Started: %s"), *ActionName.ToString()), FColor::Green);
+
+	UPVActionComponent* Comp = GetOwningComponent();
+	Comp->ActiveGameplayTags.AppendTags(GrantsTags);
+
+	RepData.bIsRunning = true;
+	RepData.Instigator = Instigator;
+
+	if (GetOwningComponent()->GetOwnerRole() == ROLE_Authority)
+	{
+		TimeStarted = GetWorld()->TimeSeconds;
+	}
+
+	GetOwningComponent()->OnActionStarted.Broadcast(GetOwningComponent(), this);
+}
+
+
+void UPVAction::StopAction_Implementation(AActor* Instigator)
+{
+	//UE_LOG(LogTemp, Log, TEXT("Stop: %s"), *GetNameSafe(this));
+	LogOnScreen(this, FString::Printf(TEXT("Stopped: %s"), *ActionName.ToString()), FColor::White);
+
+	//ensureAlways(RepData.bIsRunning);
+
+	UPVActionComponent* Comp = GetOwningComponent();
+	Comp->ActiveGameplayTags.RemoveTags(GrantsTags);
+
+	RepData.bIsRunning = false;
+	RepData.Instigator = Instigator;
+
+	GetOwningComponent()->OnActionStopped.Broadcast(GetOwningComponent(), this);
+}
+
 
 UWorld* UPVAction::GetWorld() const
 {
-	UActorComponent* Comp = Cast<UActorComponent>(GetOuter());
+	AActor* Actor = Cast<AActor>(GetOuter());
 
-	if (Comp)
+	if (Actor)
 	{
-		return Comp->GetWorld();
+		return Actor->GetWorld();
 	}
 	return nullptr;
 }
 
 
+void UPVAction::OnRep_RepData()
+{
+	if (RepData.bIsRunning)
+	{
+		StartAction(RepData.Instigator);
+	}
+	else
+	{
+		StartAction(RepData.Instigator);
+	}
+}
+
+
+bool UPVAction::IsRunning() const
+{
+	return RepData.bIsRunning;
+}
+
+
+
 
 UPVActionComponent* UPVAction::GetOwningComponent() const
 {
-	return Cast<UPVActionComponent>(GetOuter());
+	return ActionComp;
+}
+
+
+void UPVAction::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(UPVAction, RepData);
+	DOREPLIFETIME(UPVAction, TimeStarted);
+	DOREPLIFETIME(UPVAction, ActionComp);
 }

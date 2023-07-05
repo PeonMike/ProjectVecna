@@ -48,7 +48,7 @@ void APVExplosiveBarrel::PostInitializeComponents()
 	BaseMesh->OnComponentHit.AddDynamic(this, &APVExplosiveBarrel::OnActorHit);
 }
 
-void APVExplosiveBarrel::OnActorHit(UPrimitiveComponent * HitComponent, AActor * OtherActor, UPrimitiveComponent * OtherComp, FVector NormalImpulse, const FHitResult & Hit)
+void APVExplosiveBarrel::OnActorHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult & Hit)
 {
 	RadialForce->FireImpulse();
 

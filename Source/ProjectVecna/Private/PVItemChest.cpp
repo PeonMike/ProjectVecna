@@ -3,11 +3,8 @@
 
 #include "PVItemChest.h"
 #include "Components/StaticMeshComponent.h"
+#include "Net/UnrealNetwork.h"
 
-void APVItemChest::Interact_Implementation(APawn * InstigatorPawn)
-{
-	LidMesh->SetRelativeRotation(FRotator(TargetPitch, 0, 0));
-}
 
 // Sets default values
 APVItemChest::APVItemChest()
@@ -24,7 +21,10 @@ APVItemChest::APVItemChest()
 
 	TargetPitch = 120;
 
+	SetReplicates(true);
+
 }
+
 
 // Called when the game starts or when spawned
 void APVItemChest::BeginPlay()
@@ -33,10 +33,31 @@ void APVItemChest::BeginPlay()
 	
 }
 
-// Called every frame
-void APVItemChest::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
 
+void APVItemChest::Interact_Implementation(APawn* InstigatorPawn)
+{
+	//
+
+	bLidOpened = !bLidOpened;
+	OnRep_LidOpened();
+}
+
+void APVItemChest::OnActorLoaded_Implementation()
+{
+	OnRep_LidOpened();
+}
+
+void APVItemChest::OnRep_LidOpened()
+{
+	float CurrPitch = bLidOpened ? TargetPitch : 0.0f;
+	LidMesh->SetRelativeRotation(FRotator(CurrPitch, 0, 0));
+}
+
+
+void APVItemChest::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(APVItemChest, bLidOpened);
 }
 

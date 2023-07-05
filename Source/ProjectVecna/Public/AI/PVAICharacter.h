@@ -12,6 +12,7 @@ class UPawnSensingComponent;
 class UPVAttributeComponent;
 class UUserWidget;
 class UPVWorldUserWidget;
+class UPVActionComponent;
 
 
 UCLASS()
@@ -37,16 +38,21 @@ protected:
 
 	virtual void PostInitializeComponents() override;
 
+
+	UFUNCTION()
+	void OnHealthChanged(AActor* InstigatorActor, UPVAttributeComponent* OwningComp, float NewHealth, float Delta);
+
+
 	UPROPERTY(VisibleAnywhere, category = "Components")
 	UPawnSensingComponent* PawnSensingComp;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	UPVAttributeComponent* AttributeComp;
 
-	UFUNCTION()
-	void OnPawnSeen(APawn* Pawn);
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	UPVActionComponent* ActionComp;
 
 	UFUNCTION()
-	void OnHealthChanged(AActor* InstigatorActor, UPVAttributeComponent* OwningComp, float NewHealth, float Delta);
+	void OnPawnSeen(APawn* Pawn);
 
 };
