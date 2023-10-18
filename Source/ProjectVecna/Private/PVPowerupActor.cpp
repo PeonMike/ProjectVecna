@@ -41,5 +41,10 @@ void APVPowerupActor::Interact_Implementation(APawn* InstigatorPawn)
 {
 }
 
+FText APVPowerupActor::GetInteractText_Implementation(APawn * InstigatorPawn)
+{
+	return FText::GetEmpty();
+}
+
 
 

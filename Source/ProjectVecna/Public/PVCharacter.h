@@ -54,12 +54,17 @@ protected:
 
 	void BlackHoleAttack();
 
+	void ShockWave();
+
 	void Dash();
 
 	void PrimaryInteract();
 
 	UFUNCTION()
 	void OnHealthChanged(AActor* InstigatorActor, UPVAttributeComponent* OwningComp, float NewHealth, float Delta);
+
+	UFUNCTION()
+	void OnStaticChargeChanged(AActor* InstigatorActor, UPVAttributeComponent* OwningComp, float NewCharge, float Delta);
 
 	virtual void PostInitializeComponents() override;
 

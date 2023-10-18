@@ -52,7 +52,7 @@ void APVAICharacter::OnHealthChanged(AActor* InstigatorActor, UPVAttributeCompon
 			SetTargetActor(InstigatorActor);
 		}
 
-	if (ActiveHealthBar == nullptr)
+		if (ActiveHealthBar == nullptr)
 		{
 			ActiveHealthBar = CreateWidget<UPVWorldUserWidget>(GetWorld(), HealthBarWidgetClass);
 

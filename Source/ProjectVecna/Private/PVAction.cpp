@@ -34,8 +34,6 @@ void UPVAction::Initialize(UPVActionComponent * NewActionComp)
 
 void UPVAction::StartAction_Implementation(AActor* Instigator)
 {
-	//UE_LOG(LogTemp, Log, TEXT("Start: %s"), *GetNameSafe(this));
-	LogOnScreen(this, FString::Printf(TEXT("Started: %s"), *ActionName.ToString()), FColor::Green);
 
 	UPVActionComponent* Comp = GetOwningComponent();
 	Comp->ActiveGameplayTags.AppendTags(GrantsTags);
@@ -54,8 +52,6 @@ void UPVAction::StartAction_Implementation(AActor* Instigator)
 
 void UPVAction::StopAction_Implementation(AActor* Instigator)
 {
-	//UE_LOG(LogTemp, Log, TEXT("Stop: %s"), *GetNameSafe(this));
-	LogOnScreen(this, FString::Printf(TEXT("Stopped: %s"), *ActionName.ToString()), FColor::White);
 
 	//ensureAlways(RepData.bIsRunning);
 

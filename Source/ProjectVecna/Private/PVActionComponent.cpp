@@ -8,6 +8,9 @@
 #include "Engine/ActorChannel.h"
 
 
+DECLARE_CYCLE_STAT(TEXT("StartActionByName"), STAT_StartActionByName, STATGROUP_OGRE);
+
+
 UPVActionComponent::UPVActionComponent()
 {
 
@@ -35,6 +38,21 @@ void UPVActionComponent::BeginPlay()
 	
 }
 
+void UPVActionComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	TArray<UPVAction*> ActionsCopy = Actions;
+	for (UPVAction* Action : Actions)
+	{
+		if (Action && Action->IsRunning())
+		{
+			Action->StopAction(GetOwner());
+		}
+	}
+	Super::EndPlay(EndPlayReason);
+
+
+}
+
 
 void UPVActionComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
@@ -52,8 +70,7 @@ void UPVActionComponent::TickComponent(float DeltaTime, ELevelTick TickType, FAc
 			*Action->ActionName.ToString(),
 			Action->IsRunning() ? TEXT("True") : TEXT("False"),
 			*GetNameSafe(Action->GetOuter()));
-		 
-		LogOnScreen(this, ActionMsg, TextColor, 0.0f);	
+		
 	}
 }
 
@@ -100,6 +117,7 @@ void UPVActionComponent::RemoveAction(UPVAction* ActionToRemove)
 
 bool UPVActionComponent::StartActionByName(AActor* Instigator, FName ActionName)
 {
+	SCOPE_CYCLE_COUNTER(STAT_StartActionByName);
 	for (UPVAction* Action : Actions)
 	{
 		if (Action && Action->ActionName == ActionName)

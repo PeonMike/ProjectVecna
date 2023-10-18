@@ -38,5 +38,6 @@ protected:
 public:	
 	
 	APVMagicProjectile();
-	void APVIsBackstab(AActor* Target);
+
+	bool IsBackstab(AActor* Target);
 };

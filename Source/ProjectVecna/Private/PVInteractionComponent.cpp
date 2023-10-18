@@ -7,7 +7,7 @@
 #include "PVWorldUserWidget.h"
 
 
-static TAutoConsoleVariable<bool> CVarDebugDrawInteraction(TEXT("pv.DebagDrawInteraction"), 1.0f, TEXT("Switch debug draw"), ECVF_Cheat);
+static TAutoConsoleVariable<bool> CVarDebugDrawInteraction(TEXT("pv.InteractionDebugDraw"), false, TEXT("Enable Debug Lines for Interact Component."), ECVF_Cheat);
 
 // Sets default values for this component's properties
 UPVInteractionComponent::UPVInteractionComponent()
@@ -15,6 +15,7 @@ UPVInteractionComponent::UPVInteractionComponent()
 	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
 	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.TickGroup = TG_PostUpdateWork;
 
 	TraceRadius = 30.0f;
 	TraceDistance = 500.0f;
@@ -49,7 +50,7 @@ void UPVInteractionComponent::TickComponent(float DeltaTime, ELevelTick TickType
 void UPVInteractionComponent::FindBestInteractable()
 {
 
-	bool bDebagDraw = CVarDebugDrawInteraction.GetValueOnGameThread();
+	bool bDebugDraw = CVarDebugDrawInteraction.GetValueOnGameThread();
 
 	FCollisionObjectQueryParams ObjectQueryParams;
 	ObjectQueryParams.AddObjectTypesToQuery(CollisionChannel);
@@ -78,12 +79,12 @@ void UPVInteractionComponent::FindBestInteractable()
 
 	for (FHitResult Hit : Hits)
 	{
-		/*
-		if (bDebagDraw)
+		
+		if (bDebugDraw)
 		{
-			DrawDebugSphere(GetWorld(), Hit.ImpactPoint, TraceRadius, 32, LineColor, false, 2.0f);
+			DrawDebugSphere(GetWorld(), Hit.ImpactPoint, TraceRadius, 32, LineColor, false, 0.0f);
 		}
-		*/
+		
 
 		AActor* HitActor = Hit.GetActor();
 		if (HitActor)
@@ -124,8 +125,10 @@ void UPVInteractionComponent::FindBestInteractable()
 		}
 	}
 
-
-
+	if (bDebugDraw)
+	{
+		DrawDebugLine(GetWorld(), EyeLocation, End, LineColor, false, 2.0f, 0, 0.0f);
+	}
 }
 
 

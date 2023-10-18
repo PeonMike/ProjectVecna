@@ -10,6 +10,7 @@
 class UPVSaveGame;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_FourParams(FOnHealthChanged, AActor*, InstigatorActor, UPVAttributeComponent*, OwningComp, float, NewHealth, float, Delta);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_FourParams(FOnStaticChargeChanged, AActor*, InstigatorActor, UPVAttributeComponent*, OwningComp, float, NewCharge, float, Delta);
 
 
 
@@ -37,9 +38,19 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Replicated, Category = "Attributes")
 	float HealthMax;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Replicated, Category = "Attributes")
+	float StaticCharge;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Replicated, Category = "Attributes")
+	float StaticChargeMax;
+
 
 	UFUNCTION(NetMulticast, Reliable)
 	void MultiCastHealthChanged(AActor* InstigatorActor, float NewHealth, float Delta);
+
+	UFUNCTION(NetMulticast, Reliable)
+	void MultiCastStaticChargeChanged(AActor* InstigatorActor, float NewHealth, float Delta);
+	
 
 public:
 
@@ -58,6 +69,12 @@ public:
 	UPROPERTY(BlueprintAssignable)
 	FOnHealthChanged OnHealthChanged;
 
+	UPROPERTY(BlueprintAssignable)
+	FOnStaticChargeChanged OnStaticChargeChanged;
+
 	UFUNCTION(BlueprintCallable, Category = "Attributes")
 	bool ApplyHealthChange(AActor* InstigatorActor, float Delta);
+
+	UFUNCTION(BlueprintCallable, Category = "Attributes")
+	bool ApplyStaticChargeChange(AActor* InstigatorActor, float Delta);
 };

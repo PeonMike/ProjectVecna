@@ -16,6 +16,8 @@ UPVAttributeComponent::UPVAttributeComponent()
 {
 	HealthMax = 100;
 	Health = HealthMax;
+	StaticChargeMax = 100;
+	StaticCharge = 0;
 
 	SetIsReplicatedByDefault(true);
 }
@@ -61,6 +63,8 @@ bool UPVAttributeComponent::ApplyHealthChange(AActor* InstigatorActor, float Del
 		Delta *= DamageMultiplier;
 	}
 
+	ApplyStaticChargeChange(InstigatorActor, Delta);
+
 	float OldHealth = Health;
 	float NewHealth = FMath::Clamp(Health + Delta, 0.0f, HealthMax);
 	float ActualDelta = NewHealth - OldHealth;
@@ -84,6 +88,39 @@ bool UPVAttributeComponent::ApplyHealthChange(AActor* InstigatorActor, float Del
 			{
 				GM->OnActorKilled(GetOwner(), InstigatorActor);
 			}
+		}
+	}
+
+	return ActualDelta != 0;
+}
+
+bool UPVAttributeComponent::ApplyStaticChargeChange(AActor * InstigatorActor, float Delta)
+{
+	if (!GetOwner()->CanBeDamaged() && Delta < 0.0f)
+	{
+		return false;
+	}
+
+
+	if (Delta < 0.0f)
+	{
+		float DamageMultiplier = CVarDamageMultiplier.GetValueOnGameThread();
+
+		Delta *= DamageMultiplier;
+	}
+
+	float OldCharge = StaticCharge;
+	float NewCharge = FMath::Clamp(StaticCharge - Delta + 7, 0.0f, StaticChargeMax);
+	float ActualDelta = NewCharge + OldCharge;
+
+	//Is Server?
+	if (GetOwner()->HasAuthority())
+	{
+		StaticCharge = NewCharge;
+
+		if (ActualDelta != 0.0f)
+		{
+			MultiCastStaticChargeChanged(InstigatorActor, StaticCharge, ActualDelta);
 		}
 	}
 
@@ -120,6 +157,11 @@ void UPVAttributeComponent::MultiCastHealthChanged_Implementation(AActor* Instig
 	OnHealthChanged.Broadcast(InstigatorActor, this, NewHealth, Delta);
 }
 
+void UPVAttributeComponent::MultiCastStaticChargeChanged_Implementation(AActor* InstigatorActor, float NewCharge, float Delta)
+{
+	OnStaticChargeChanged.Broadcast(InstigatorActor, this, NewCharge, Delta);
+}
+
 
 void UPVAttributeComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
@@ -127,6 +169,8 @@ void UPVAttributeComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>
 
 	DOREPLIFETIME(UPVAttributeComponent, Health);
 	DOREPLIFETIME(UPVAttributeComponent, HealthMax);
+	DOREPLIFETIME(UPVAttributeComponent, StaticCharge);
+	DOREPLIFETIME(UPVAttributeComponent, StaticChargeMax);
 
 }
 

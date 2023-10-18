@@ -18,25 +18,18 @@ APVMagicProjectile::APVMagicProjectile()
 	SphereComp->SetSphereRadius(20.0f);
 	SphereComp->OnComponentBeginOverlap.AddDynamic(this, &APVMagicProjectile::OnActorOverlap);
 
+	InitialLifeSpan = 10.0f;
+
 	DamageAmount = 20.0f;
 }
+
+
 
 void APVMagicProjectile::OnActorOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	if (OtherActor && OtherActor != GetInstigator()) 
 	{
-		/*
-		AActor* MyActor = GetInstigator();
 
-		FVector DistanceDif = MyActor->GetActorLocation() - OtherActor->GetActorLocation();
-
-		DistanceDif.Normalize();
-		float DotProduct = OtherActor->GetActorForwardVector() | DistanceDif;
-
-		if (DotProduct < -0.5f) {
-			DamageAmount = 100.0f;
-		}
-		*/
 		//static FGameplayTag Tag = FGameplayTag::RequestGameplayTag("Status.Parrying");
 
 		UPVActionComponent* ActionComp = Cast<UPVActionComponent>(OtherActor->GetComponentByClass(UPVActionComponent::StaticClass()));
@@ -47,6 +40,9 @@ void APVMagicProjectile::OnActorOverlap(UPrimitiveComponent* OverlappedComponent
 			SetInstigator(Cast<APawn>(OtherActor));
 			return;
 		}
+		//if (IsBackstab(OtherActor)) {
+		//	DamageAmount = 100;
+		//}
 
 		if (UPVGameplayFunctionLibrary::ApplyDirectionalDamage(GetInstigator(), OtherActor, DamageAmount, SweepResult))
 		{
@@ -58,4 +54,20 @@ void APVMagicProjectile::OnActorOverlap(UPrimitiveComponent* OverlappedComponent
 			}
 		}
 	}
+}
+
+
+bool APVMagicProjectile::IsBackstab(AActor* Target)
+{
+	AActor* MyActor = GetInstigator();
+
+	FVector DistanceDif = MyActor->GetActorLocation() - Target->GetActorLocation();
+
+	DistanceDif.Normalize();
+	float DotProduct = Target->GetActorForwardVector() | DistanceDif;
+
+	if (DotProduct < -0.5f) {
+		return true;
+	}
+	return false;
 }

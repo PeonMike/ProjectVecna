@@ -43,6 +43,7 @@ void APVCharacter::PostInitializeComponents()
 	Super::PostInitializeComponents();
 
 	AttributeComp->OnHealthChanged.AddDynamic(this, &APVCharacter::OnHealthChanged);
+	AttributeComp->OnStaticChargeChanged.AddDynamic(this, &APVCharacter::OnStaticChargeChanged);
 }
 
 FVector APVCharacter::GetPawnViewLocation() const
@@ -64,6 +65,7 @@ void APVCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 
 	PlayerInputComponent->BindAction("PrimaryAttack", IE_Pressed, this, &APVCharacter::PrimaryAttack);
 	PlayerInputComponent->BindAction("SecondaryAttack", IE_Pressed, this, &APVCharacter::BlackHoleAttack);
+	PlayerInputComponent->BindAction("ShockWave", IE_Pressed, this, &APVCharacter::ShockWave);
 	PlayerInputComponent->BindAction("Dash", IE_Pressed, this, &APVCharacter::Dash);
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &APVCharacter::Jump);
 	PlayerInputComponent->BindAction("PrimaryInteract", IE_Pressed, this, &APVCharacter::PrimaryInteract);
@@ -119,6 +121,13 @@ void APVCharacter::BlackHoleAttack()
 	ActionComp->StartActionByName(this, "Blackhole");
 }
 
+void APVCharacter::ShockWave()
+{
+	ActionComp->StartActionByName(this, "ShockWave");
+	float Amount = 20;
+	AttributeComp->ApplyStaticChargeChange(this, Amount);
+}
+
 void APVCharacter::Dash()
 {
 	ActionComp->StartActionByName(this, "Dash");
@@ -149,6 +158,15 @@ void APVCharacter::OnHealthChanged(AActor* InstigatorActor, UPVAttributeComponen
 		DisableInput(PC);
 
 		SetLifeSpan(5.0f);
+	}
+}
+
+
+void APVCharacter::OnStaticChargeChanged(AActor * InstigatorActor, UPVAttributeComponent * OwningComp, float NewCharge, float Delta)
+{
+	if (Delta < 0.0f)
+	{
+		GetMesh()->SetScalarParameterValueOnMaterials(TimeToHitParamName, GetWorld()->TimeSeconds);
 	}
 }
 
